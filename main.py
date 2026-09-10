@@ -5,6 +5,7 @@ import aiohttp
 
 M3U_URL = "https://raw.githubusercontent.com/Ramys/Iptv-Brasil-2026/refs/heads/master/CanaisBR01.m3u8"
 
+# Palavras-chave para remover conteúdo adulto e arquivos VOD On Demand
 ADULT_KEYWORDS = ["xxx", "adulto", "porn", "playboy", "sextreme", "redlight", "venus", "hustler", "18+"]
 VOD_EXTENSIONS = ('.mp4', '.mkv', '.avi', '.mov', '.flv')
 VOD_PATTERNS = [
@@ -13,61 +14,114 @@ VOD_PATTERNS = [
     r'\b720P\b', r'\b1080P\b', r'\b4K\b', r'\bWEBRIP\b', r'\bWEB-DL\b', r'\bBLURAY\b'
 ]
 
-# Base de Logos Diretas para Canais Populares do Brasil
-DIRECT_LOGOS = {
-    "a&e": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/A%26E_Network_logo.svg/320px-A%26E_Network_logo.svg.png",
-    "globo": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/TV_Globo_logo_2021.svg/320px-TV_Globo_logo_2021.svg.png",
-    "sbt": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/SBT_logo_2014.svg/320px-SBT_logo_2014.svg.png",
-    "record": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/Record_TV_logo_2023.svg/320px-Record_TV_logo_2023.svg.png",
-    "band": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d2/Rede_Bandeirantes_logo.svg/320px-Rede_Bandeirantes_logo.svg.png",
-    "redetv": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/88/RedeTV%21_logo.svg/320px-RedeTV%21_logo.svg.png",
-    "sportv": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/SporTV_logo_2021.svg/320px-SporTV_logo_2021.svg.png",
-    "espn": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/ESPN_wordmark.svg/320px-ESPN_wordmark.svg.png",
-    "premiere": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Premiere_logo_2021.svg/320px-Premiere_logo_2021.svg.png",
-    "combate": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Canal_Combate_logo.svg/320px-Canal_Combate_logo.svg.png",
-    "cartoon network": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/Cartoon_Network_2010_logo.svg/320px-Cartoon_Network_2010_logo.svg.png",
-    "discovery": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f1/Discovery_Channel_logo_2019.svg/320px-Discovery_Channel_logo_2019.svg.png",
-    "history": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f5/History_Logo.svg/320px-History_Logo.svg.png",
-    "cnn brasil": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/CNN_Brasil_logo.svg/320px-CNN_Brasil_logo.svg.png",
-    "globonews": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/GloboNews_logo_2021.svg/320px-GloboNews_logo_2021.svg.png"
+# Dicionário de Logos Profissionais em Alta Resolução (HD/PNG)
+LOGOS_MAP = {
+    # TV ABERTA
+    "globo": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/TV_Globo_logo_2021.svg/512px-TV_Globo_logo_2021.svg.png",
+    "sbt": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/SBT_logo_2014.svg/512px-SBT_logo_2014.svg.png",
+    "record": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/Record_TV_logo_2023.svg/512px-Record_TV_logo_2023.svg.png",
+    "band": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d2/Rede_Bandeirantes_logo.svg/512px-Rede_Bandeirantes_logo.svg.png",
+    "redetv": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/88/RedeTV%21_logo.svg/512px-RedeTV%21_logo.svg.png",
+    "cultura": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/TV_Cultura_logo_2019.svg/512px-TV_Cultura_logo_2019.svg.png",
+    "gazeta": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/TV_Gazeta_logo.svg/512px-TV_Gazeta_logo.svg.png",
+
+    # ESPORTES
+    "sportv 1": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/SporTV_logo_2021.svg/512px-SporTV_logo_2021.svg.png",
+    "sportv 2": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/SporTV_logo_2021.svg/512px-SporTV_logo_2021.svg.png",
+    "sportv 3": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/SporTV_logo_2021.svg/512px-SporTV_logo_2021.svg.png",
+    "sportv": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/SporTV_logo_2021.svg/512px-SporTV_logo_2021.svg.png",
+    "espn": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/ESPN_wordmark.svg/512px-ESPN_wordmark.svg.png",
+    "premiere": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Premiere_logo_2021.svg/512px-Premiere_logo_2021.svg.png",
+    "combate": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Canal_Combate_logo.svg/512px-Canal_Combate_logo.svg.png",
+    "bandsports": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/db/BandSports_logo.png/512px-BandSports_logo.png",
+    "nosso futebol": "https://raw.githubusercontent.com/iptv-org/iptv/master/logos/NossoFutebol.png",
+
+    # CANAIS DE FILMES E SÉRIES
+    "telecine premium": "https://raw.githubusercontent.com/iptv-org/iptv/master/logos/TelecinePremium.png",
+    "telecine action": "https://raw.githubusercontent.com/iptv-org/iptv/master/logos/TelecineAction.png",
+    "telecine touch": "https://raw.githubusercontent.com/iptv-org/iptv/master/logos/TelecineTouch.png",
+    "telecine fun": "https://raw.githubusercontent.com/iptv-org/iptv/master/logos/TelecineFun.png",
+    "telecine pipoca": "https://raw.githubusercontent.com/iptv-org/iptv/master/logos/TelecinePipoca.png",
+    "telecine cult": "https://raw.githubusercontent.com/iptv-org/iptv/master/logos/TelecineCult.png",
+    "telecine": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/Telecine_logo_2019.svg/512px-Telecine_logo_2019.svg.png",
+    "hbo": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/de/HBO_logo.svg/512px-HBO_logo.svg.png",
+    "megapix": "https://raw.githubusercontent.com/iptv-org/iptv/master/logos/Megapix.png",
+    "tnt": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/07/TNT_Logo_2016.svg/512px-TNT_Logo_2016.svg.png",
+    "space": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Space_Channel_Logo.svg/512px-Space_Channel_Logo.svg.png",
+    "axn": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/AXN_logo_2015.svg/512px-AXN_logo_2015.svg.png",
+    "warner": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/Warner_TV_logo_2021.svg/512px-Warner_TV_logo_2021.svg.png",
+    "universal": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/23/Universal_TV_logo.svg/512px-Universal_TV_logo.svg.png",
+    "studio universal": "https://raw.githubusercontent.com/iptv-org/iptv/master/logos/StudioUniversal.png",
+    "paramount": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Paramount_Network_2018.svg/512px-Paramount_Network_2018.svg.png",
+    "a&e": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/A%26E_Network_logo.svg/512px-A%26E_Network_logo.svg.png",
+    "cinemax": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8b/Cinemax_2011_logo.svg/512px-Cinemax_2011_logo.svg.png",
+    "amc": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/AMC_logo_2019.svg/512px-AMC_logo_2019.svg.png",
+
+    # INFANTIL
+    "cartoon network": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/Cartoon_Network_2010_logo.svg/512px-Cartoon_Network_2010_logo.svg.png",
+    "discovery kids": "https://raw.githubusercontent.com/iptv-org/iptv/master/logos/DiscoveryKids.png",
+    "gloob": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b1/Gloob_logo_2017.svg/512px-Gloob_logo_2017.svg.png",
+    "gloobinho": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f7/Gloobinho_logo.svg/512px-Gloobinho_logo.svg.png",
+    "nickelodeon": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/Nickelodeon_2023_logo.svg/512px-Nickelodeon_2023_logo.svg.png",
+    "nick jr": "https://raw.githubusercontent.com/iptv-org/iptv/master/logos/NickJr.png",
+    "disney channel": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d2/Disney_Channel_logo.svg/512px-Disney_Channel_logo.svg.png",
+
+    # NOTÍCIAS & DOCUMENTÁRIOS
+    "globonews": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/GloboNews_logo_2021.svg/512px-GloboNews_logo_2021.svg.png",
+    "cnn brasil": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/CNN_Brasil_logo.svg/512px-CNN_Brasil_logo.svg.png",
+    "bandnews": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/BandNews_TV_logo.svg/512px-BandNews_TV_logo.svg.png",
+    "jovem pan news": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Jovem_Pan_News_logo.svg/512px-Jovem_Pan_News_logo.svg.png",
+    "discovery": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f1/Discovery_Channel_logo_2019.svg/512px-Discovery_Channel_logo_2019.svg.png",
+    "history": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f5/History_Logo.svg/512px-History_Logo.svg.png",
+    "national geographic": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/National_Geographic_logo.svg/512px-National_Geographic_logo.svg.png",
+    "animal planet": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/Animal_Planet_2018_logo.svg/512px-Animal_Planet_2018_logo.svg.png",
+
+    # VARIEDADES
+    "viva": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/Canal_Viva_logo_2018.svg/512px-Canal_Viva_logo_2018.svg.png",
+    "multishow": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Multishow_logo_2021.svg/512px-Multishow_logo_2021.svg.png",
+    "gnt": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7f/GNT_logo_2021.svg/512px-GNT_logo_2021.svg.png",
+    "e!": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b8/E%21_Logo.svg/512px-E%21_Logo.svg.png",
 }
 
 EPG_BASE_URL = "https://epg.best/br.xml"
 
 def clean_channel_name(name):
-    """Limpa termos como 4K², FHD, H265, HD, etc."""
+    """Limpa identificadores de qualidade e formatos do nome do canal."""
     cleaned = re.sub(r'(?i)\b(4k²|4k|fhd|h265|h\.265|hd²|hd|sd|hq|hevc|raw|1080p|720p)\b', '', name)
     cleaned = re.sub(r'[\[\]\(\)\²]', '', cleaned)
     cleaned = re.sub(r'\s+', ' ', cleaned).strip()
     return cleaned if cleaned else name
 
 def get_logo_url(clean_name):
-    """Busca o link da logo baseado no nome do canal."""
+    """Procura a logo oficial no dicionário mapeado."""
     name_lower = clean_name.lower()
-    for key, logo in DIRECT_LOGOS.items():
+    
+    # Busca por correspondência exata ou parcial
+    for key, logo_url in LOGOS_MAP.items():
         if key in name_lower:
-            return logo
-    return f"https://raw.githubusercontent.com/iptv-org/iptv/master/logos/{name_lower.replace(' ', '')}.png"
+            return logo_url
+            
+    # Fallback dinâmico para repositório open-source
+    formatted_name = re.sub(r'[^a-zA-Z0-9]', '', clean_name)
+    return f"https://raw.githubusercontent.com/iptv-org/iptv/master/logos/{formatted_name}.png"
 
 async def check_stream(session, url, semaphore):
-    """Lê os primeiros bytes de streaming para garantir que o canal está realmente transmitindo."""
+    """Testa a resposta HTTP do servidor usando parâmetros de player real (VLC)."""
     if not url.startswith("http"):
         return False
     async with semaphore:
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+        headers = {'User-Agent': 'VLC/3.0.18 LibVLC/3.0.18'}
         try:
-            async with session.get(url, timeout=4.0, headers=headers, allow_redirects=True) as response:
-                if response.status != 200:
-                    return False
-                content_type = response.headers.get('Content-Type', '').lower()
-                if 'text/html' in content_type:
-                    return False
-                
-                # Tenta ler 1024 bytes do fluxo real para provar que está online
-                chunk = await response.content.read(1024)
-                return len(chunk) > 0
+            # Teste por HEAD (rápido e compatível com IPTV)
+            async with session.head(url, timeout=3.5, headers=headers, allow_redirects=True) as response:
+                return response.status == 200
         except Exception:
-            return False
+            try:
+                # Fallback por GET curto se HEAD falhar
+                async with session.get(url, timeout=3.5, headers=headers, allow_redirects=True) as response:
+                    return response.status == 200
+            except Exception:
+                return False
 
 def is_adult(text):
     return any(k in text.lower() for k in ADULT_KEYWORDS)
@@ -158,10 +212,10 @@ async def main():
             if classified:
                 live_channels.append(classified)
 
-        print(f"Canais filtrados (sem adult/vod): {len(live_channels)}")
+        print(f"Canais de TV filtrados (sem adult/vod): {len(live_channels)}")
 
-        print("Testando fluxo real de dados de vídeo...")
-        semaphore = asyncio.Semaphore(30)
+        print("Testando sinal online dos canais...")
+        semaphore = asyncio.Semaphore(50)
         
         async def verify(ch):
             online = await check_stream(session, ch["url"], semaphore)
@@ -171,7 +225,7 @@ async def main():
         results = await asyncio.gather(*tasks)
         online_channels = [ch for ch in results if ch is not None]
 
-        print(f"Canais com fluxo ativo real: {len(online_channels)}")
+        print(f"Canais online validados: {len(online_channels)}")
 
         # Gravando arquivo final M3U
         with open("lista_limpa.m3u", "w", encoding="utf-8") as f:
@@ -180,11 +234,11 @@ async def main():
                 clean_name = clean_channel_name(ch["name"])
                 logo_url = get_logo_url(clean_name)
 
-                # Monta a nova linha EXTINF já com a logo injetada e categoria
+                # Formata a linha EXTINF profissionalmente com logo e categoria
                 new_extinf = f'#EXTINF:-1 tvg-logo="{logo_url}" group-title="{ch["group"]}",{clean_name}'
                 f.write(f"{new_extinf}\n{ch['url']}\n")
 
-        print("Nova lista gerada e salva com sucesso!")
+        print("Nova lista profissional gerada e salva com sucesso!")
 
 if __name__ == "__main__":
     asyncio.run(main())
