@@ -8,67 +8,69 @@ M3U_URL = "https://raw.githubusercontent.com/Ramys/Iptv-Brasil-2026/refs/heads/m
 ADULT_KEYWORDS = ["xxx", "adulto", "porn", "playboy", "sextreme", "redlight", "venus", "hustler", "18+"]
 VOD_EXTENSIONS = ('.mp4', '.mkv', '.avi', '.mov', '.flv')
 VOD_PATTERNS = [
-    r'\b(19\d{2}|20\d{2})\b',
-    r'\bS\d{1,2}\s*E\d{1,2}\b',
-    r'\b\d{1,2}x\d{1,2}\b',
-    r'\bTEMPORADA\b',
-    r'\bEPISODIO\b',
-    r'\bDUBLADO\b', r'\bLEGENDADO\b',
-    r'\b720P\b', r'\b1080P\b', r'\b4K\b',
-    r'\bWEBRIP\b', r'\bWEB-DL\b', r'\bBLURAY\b'
+    r'\b(19\d{2}|20\d{2})\b', r'\bS\d{1,2}\s*E\d{1,2}\b', r'\b\d{1,2}x\d{1,2}\b',
+    r'\bTEMPORADA\b', r'\bEPISODIO\b', r'\bDUBLADO\b', r'\bLEGENDADO\b',
+    r'\b720P\b', r'\b1080P\b', r'\b4K\b', r'\bWEBRIP\b', r'\bWEB-DL\b', r'\bBLURAY\b'
 ]
 
-# Base pública EPG e Logos
-EPG_BASE_URL = "https://epg.best/br.xml"
-LOGOS_MAPPING_URL = "https://raw.githubusercontent.com/iptv-org/iptv/master/streams/br.m3u"
+# Base de Logos Diretas para Canais Populares do Brasil
+DIRECT_LOGOS = {
+    "a&e": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/A%26E_Network_logo.svg/320px-A%26E_Network_logo.svg.png",
+    "globo": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/TV_Globo_logo_2021.svg/320px-TV_Globo_logo_2021.svg.png",
+    "sbt": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/SBT_logo_2014.svg/320px-SBT_logo_2014.svg.png",
+    "record": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/Record_TV_logo_2023.svg/320px-Record_TV_logo_2023.svg.png",
+    "band": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d2/Rede_Bandeirantes_logo.svg/320px-Rede_Bandeirantes_logo.svg.png",
+    "redetv": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/88/RedeTV%21_logo.svg/320px-RedeTV%21_logo.svg.png",
+    "sportv": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/SporTV_logo_2021.svg/320px-SporTV_logo_2021.svg.png",
+    "espn": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/ESPN_wordmark.svg/320px-ESPN_wordmark.svg.png",
+    "premiere": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Premiere_logo_2021.svg/320px-Premiere_logo_2021.svg.png",
+    "combate": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Canal_Combate_logo.svg/320px-Canal_Combate_logo.svg.png",
+    "cartoon network": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/Cartoon_Network_2010_logo.svg/320px-Cartoon_Network_2010_logo.svg.png",
+    "discovery": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f1/Discovery_Channel_logo_2019.svg/320px-Discovery_Channel_logo_2019.svg.png",
+    "history": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f5/History_Logo.svg/320px-History_Logo.svg.png",
+    "cnn brasil": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/CNN_Brasil_logo.svg/320px-CNN_Brasil_logo.svg.png",
+    "globonews": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/GloboNews_logo_2021.svg/320px-GloboNews_logo_2021.svg.png"
+}
 
-async def load_logo_database(session):
-    """Baixa um mapeamento público de canais do Brasil com logos."""
-    logo_dict = {}
-    try:
-        async with session.get(LOGOS_MAPPING_URL, timeout=10) as resp:
-            if resp.status == 200:
-                text = await resp.text()
-                for line in text.splitlines():
-                    if line.startswith("#EXTINF:"):
-                        logo_match = re.search(r'tvg-logo="([^"]+)"', line)
-                        name = line.split(",")[-1].strip() if "," in line else ""
-                        if logo_match and name:
-                            clean_n = clean_channel_name(name).lower()
-                            logo_dict[clean_n] = logo_match.group(1)
-    except Exception as e:
-        print(f"Aviso: Não foi possível carregar base externa de logos: {e}")
-    return logo_dict
+EPG_BASE_URL = "https://epg.best/br.xml"
 
 def clean_channel_name(name):
-    """Remove sufixos de qualidade e caracteres para busca de logo e exibição limpa."""
-    # Remove termos como 4K, FHD, HD, SD, [RAW], 4K², etc.
-    cleaned = re.sub(r'(?i)\b(4k²|4k|fhd|hd|sd|hq|hevc|raw|1080p|720p)\b', '', name)
+    """Limpa termos como 4K², FHD, H265, HD, etc."""
+    cleaned = re.sub(r'(?i)\b(4k²|4k|fhd|h265|h\.265|hd²|hd|sd|hq|hevc|raw|1080p|720p)\b', '', name)
     cleaned = re.sub(r'[\[\]\(\)\²]', '', cleaned)
     cleaned = re.sub(r'\s+', ' ', cleaned).strip()
     return cleaned if cleaned else name
 
+def get_logo_url(clean_name):
+    """Busca o link da logo baseado no nome do canal."""
+    name_lower = clean_name.lower()
+    for key, logo in DIRECT_LOGOS.items():
+        if key in name_lower:
+            return logo
+    return f"https://raw.githubusercontent.com/iptv-org/iptv/master/logos/{name_lower.replace(' ', '')}.png"
+
 async def check_stream(session, url, semaphore):
-    """Testa se a URL é um fluxo de mídia ativo válido e não um erro mascarado."""
+    """Lê os primeiros bytes de streaming para garantir que o canal está realmente transmitindo."""
     if not url.startswith("http"):
         return False
     async with semaphore:
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
         try:
-            async with session.get(url, timeout=3.5, headers=headers, allow_redirects=True) as response:
+            async with session.get(url, timeout=4.0, headers=headers, allow_redirects=True) as response:
                 if response.status != 200:
                     return False
                 content_type = response.headers.get('Content-Type', '').lower()
-                # Rejeita páginas HTML que fingem ser status 200
                 if 'text/html' in content_type:
                     return False
-                return True
+                
+                # Tenta ler 1024 bytes do fluxo real para provar que está online
+                chunk = await response.content.read(1024)
+                return len(chunk) > 0
         except Exception:
             return False
 
 def is_adult(text):
-    text_lower = text.lower()
-    return any(k in text_lower for k in ADULT_KEYWORDS)
+    return any(k in text.lower() for k in ADULT_KEYWORDS)
 
 def is_vod(name, group, url):
     url_lower = url.lower()
@@ -77,15 +79,12 @@ def is_vod(name, group, url):
 
     if url_lower.endswith(VOD_EXTENSIONS) or "/movie/" in url_lower or "/series/" in url_lower:
         return True
-
     if any(k in group_upper for k in ["VOD", "FILMES", "SERIES", "NETFLIX", "PRIME", "HBO MAX"]):
         if "24/7" not in group_upper:
             return True
-
     for pattern in VOD_PATTERNS:
         if re.search(pattern, name_upper):
             return True
-
     return False
 
 def parse_m3u(content):
@@ -143,9 +142,6 @@ def classify_channel(channel):
 async def main():
     print("Baixando lista M3U...")
     async with aiohttp.ClientSession() as session:
-        # Carrega base de logos
-        logo_db = await load_logo_database(session)
-
         try:
             async with session.get(M3U_URL) as resp:
                 content = await resp.text()
@@ -154,7 +150,7 @@ async def main():
             return
 
         channels = parse_m3u(content)
-        print(f"Total bruto de itens lidos: {len(channels)}")
+        print(f"Total bruto de itens: {len(channels)}")
 
         live_channels = []
         for ch in channels:
@@ -162,10 +158,10 @@ async def main():
             if classified:
                 live_channels.append(classified)
 
-        print(f"Canais de TV Ao Vivo filtrados: {len(live_channels)}")
+        print(f"Canais filtrados (sem adult/vod): {len(live_channels)}")
 
-        print("Iniciando verificação rigorosa de sinal online...")
-        semaphore = asyncio.Semaphore(40) # Testes simultâneos para verificação mais precisa
+        print("Testando fluxo real de dados de vídeo...")
+        semaphore = asyncio.Semaphore(30)
         
         async def verify(ch):
             online = await check_stream(session, ch["url"], semaphore)
@@ -175,39 +171,20 @@ async def main():
         results = await asyncio.gather(*tasks)
         online_channels = [ch for ch in results if ch is not None]
 
-        print(f"Canais 100% ativos e validados: {len(online_channels)}")
+        print(f"Canais com fluxo ativo real: {len(online_channels)}")
 
         # Gravando arquivo final M3U
         with open("lista_limpa.m3u", "w", encoding="utf-8") as f:
             f.write(f'#EXTM3U url-tvg="{EPG_BASE_URL}"\n')
             for ch in online_channels:
                 clean_name = clean_channel_name(ch["name"])
-                clean_key = clean_name.lower()
-                
-                # Busca logo
-                logo_url = logo_db.get(clean_key, "")
-                
-                extinf = ch["extinf"]
-                # Atualiza ou insere group-title
-                extinf = re.sub(r'group-title="[^"]+"', f'group-title="{ch["group"]}"', extinf)
-                if 'group-title=' not in extinf:
-                    extinf = extinf.replace("#EXTINF:-1", f'#EXTINF:-1 group-title="{ch["group"]}"')
+                logo_url = get_logo_url(clean_name)
 
-                # Injeta a tag tvg-logo
-                if logo_url:
-                    if 'tvg-logo=' in extinf:
-                        extinf = re.sub(r'tvg-logo="[^"]+"', f'tvg-logo="{logo_url}"', extinf)
-                    else:
-                        extinf = extinf.replace('#EXTINF:-1', f'#EXTINF:-1 tvg-logo="{logo_url}"')
+                # Monta a nova linha EXTINF já com a logo injetada e categoria
+                new_extinf = f'#EXTINF:-1 tvg-logo="{logo_url}" group-title="{ch["group"]}",{clean_name}'
+                f.write(f"{new_extinf}\n{ch['url']}\n")
 
-                # Substitui o nome do canal pelo nome limpo
-                if "," in extinf:
-                    prefix = extinf.rsplit(",", 1)[0]
-                    extinf = f"{prefix},{clean_name}"
-
-                f.write(f"{extinf}\n{ch['url']}\n")
-
-        print("Lista 'lista_limpa.m3u' atualizada com sucesso com Logos e Filtro Rigoroso!")
+        print("Nova lista gerada e salva com sucesso!")
 
 if __name__ == "__main__":
     asyncio.run(main())
