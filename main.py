@@ -4,9 +4,7 @@ import urllib.parse
 import asyncio
 import aiohttp
 
-# URL do banco de dados oficial do autor que contém TODAS as logos exatas do tjtor8411.com
 LOGOS_M3U_URL = "https://raw.githubusercontent.com/Ramys/Iptv-Brasil-2026/refs/heads/master/CanaisBR03.m3u8"
-# URL principal dos canais
 MAIN_M3U_URL = "https://raw.githubusercontent.com/Ramys/Iptv-Brasil-2026/refs/heads/master/CanaisBR01.m3u8"
 
 ADULT_KEYWORDS = ["xxx", "adulto", "porn", "playboy", "sextreme", "redlight", "venus", "hustler", "18+"]
@@ -18,19 +16,51 @@ VOD_PATTERNS = [
 ]
 
 EPG_BASE_URL = "https://epg.best/br.xml"
-TJTOR_BASE_LOGO = "http://tjtor8411.com/static/logos/canais/"
+TJTOR_BASE = "http://tjtor8411.com/static/logos/canais/"
 
-def get_base_channel_name(name):
-    """Extrai a marca principal do canal ignorando sufixos para batimento de nome."""
+# Mapeamento manual de socorro para garantir marcas principais no servidor tjtor8411
+STATIC_BRAND_LOGOS = {
+    "viva": f"{TJTOR_BASE}viva.png",
+    "globo": f"{TJTOR_BASE}globo.png",
+    "sbt": f"{TJTOR_BASE}sbt.png",
+    "record": f"{TJTOR_BASE}record.png",
+    "band": f"{TJTOR_BASE}band.png",
+    "redetv": f"{TJTOR_BASE}redetv.png",
+    "cultura": f"{TJTOR_BASE}tv_cultura.png",
+    "sportv": f"{TJTOR_BASE}sportv.png",
+    "espn": f"{TJTOR_BASE}espn.png",
+    "premiere": f"{TJTOR_BASE}premiere.png",
+    "combate": f"{TJTOR_BASE}combate.png",
+    "telecine": f"{TJTOR_BASE}telecine.png",
+    "hbo": f"{TJTOR_BASE}hbo.png",
+    "a&e": f"{TJTOR_BASE}a%26e.png",
+    "cartoon": f"{TJTOR_BASE}cartoon.png",
+    "globonews": f"{TJTOR_BASE}globonews.png",
+    "cnn": f"{TJTOR_BASE}cnn_brasil.png",
+    "discovery": f"{TJTOR_BASE}discovery.png",
+    "history": f"{TJTOR_BASE}history.png",
+    "megapix": f"{TJTOR_BASE}megapix.png",
+    "tnt": f"{TJTOR_BASE}tnt.png",
+    "space": f"{TJTOR_BASE}space.png",
+    "axn": f"{TJTOR_BASE}axn.png",
+    "warner": f"{TJTOR_BASE}warner.png",
+    "universal": f"{TJTOR_BASE}universal.png"
+}
+
+def extract_core_brand(name):
+    """Extrai a marca pura do canal eliminando qualidades, estados e sufixos."""
+    # Remove qualidades comuns
     clean = re.sub(r'(?i)\b(4k²|4k|fhd|h265|h\.265|hd²|hd|sd|hq|hevc|raw|1080p|720p|24/7)\b', '', name)
+    # Remove colchetes, parênteses e caracteres especiais
     clean = re.sub(r'[\[\]\(\)\²|]', '', clean)
     clean = re.sub(r'\s+', ' ', clean).strip().lower()
     return clean if clean else name.lower()
 
 async def load_tjtor_logo_database(session):
-    """Lê a lista oficial CanaisBR03 e extrai 100% dos links de logos do tjtor8411.com"""
+    """Lê a lista secundária do autor e constrói o banco de logos."""
     logo_map = {}
-    print("Baixando mapeamento oficial de logos do tjtor8411.com...")
+    brand_map = {}
+    print("Carregando banco de dados de logos...")
     try:
         async with session.get(LOGOS_M3U_URL, timeout=15) as resp:
             if resp.status == 200:
@@ -41,33 +71,47 @@ async def load_tjtor_logo_database(session):
                         name = line.split(",")[-1].strip() if "," in line else ""
                         if logo_match and name:
                             logo_url = logo_match.group(1)
-                            base_name = get_base_channel_name(name)
-                            logo_map[base_name] = logo_url
-                print(f"Mapeamento carregado com sucesso! {len(logo_map)} logos oficiais encontradas.")
+                            full_name_clean = name.strip().lower()
+                            core_brand = extract_core_brand(name)
+
+                            logo_map[full_name_clean] = logo_url
+                            if core_brand and core_brand not in brand_map:
+                                brand_map[core_brand] = logo_url
+                print(f"Banco carregado: {len(logo_map)} nomes exatos e {len(brand_map)} marcas mapeadas.")
     except Exception as e:
-        print(f"Aviso ao carregar banco de logos: {e}")
-    return logo_map
+        print(f"Aviso ao carregar logos: {e}")
+    return logo_map, brand_map
 
-def get_logo_for_channel(channel_name, logo_db):
-    """Obtém a logo do banco de dados oficial ou gera no padrão exato do servidor tjtor8411."""
-    base_name = get_base_channel_name(channel_name)
+def get_best_logo_url(channel_name, logo_map, brand_map):
+    """Estratégia hierárquica em 4 passos para garantir a logo em variações SD/HD e regionais."""
+    clean_full_name = channel_name.strip().lower()
+    core_brand = extract_core_brand(channel_name)
 
-    # 1. Busca exata no banco de dados extraído do CanaisBR03
-    if base_name in logo_db:
-        return logo_db[base_name]
+    # 1. Busca pelo nome idêntico
+    if clean_full_name in logo_map:
+        return logo_map[clean_full_name]
 
-    # 2. Busca parcial (ex: "globo sp" encontra a logo de "globo")
-    for db_name, logo_url in logo_db.items():
-        if db_name in base_name or base_name in db_name:
+    # 2. Busca pela Marca Pura no banco do autor (ex: "viva sd" encontra a logo do "viva fhd")
+    if core_brand in brand_map:
+        return brand_map[core_brand]
+
+    # 3. Busca por palavra-chave da Marca Pura dentro do banco
+    for b_name, logo_url in brand_map.items():
+        if b_name and (b_name in core_brand or core_brand in b_name):
             return logo_url
 
-    # 3. Fallback no padrão do servidor tjtor8411 (converte espaços em sublinhado e codifica caracteres especiais como &)
-    formatted_filename = base_name.replace(" ", "_")
-    encoded_filename = urllib.parse.quote(formatted_filename)
-    return f"{TJTOR_BASE_LOGO}{encoded_filename}.png"
+    # 4. Busca no dicionário de marcas estáticas para redes nacionais
+    for static_brand, logo_url in STATIC_BRAND_LOGOS.items():
+        if static_brand in core_brand:
+            return logo_url
+
+    # Fallback limpo apontando para a marca principal no servidor tjtor
+    formatted = core_brand.replace(" ", "_")
+    encoded = urllib.parse.quote(formatted)
+    return f"{TJTOR_BASE}{encoded}.png"
 
 async def check_stream(session, url, semaphore):
-    """Testa se a URL do canal responde status 200."""
+    """Testa se a URL responde status HTTP 200."""
     if not url.startswith("http"):
         return False
     async with semaphore:
@@ -154,10 +198,9 @@ def classify_channel(channel):
 
 async def main():
     async with aiohttp.ClientSession() as session:
-        # 1. Carrega o banco de dados oficial de logos do tjtor8411.com
-        logo_db = await load_tjtor_logo_database(session)
+        logo_map, brand_map = await load_tjtor_logo_database(session)
 
-        print("Baixando lista de canais...")
+        print("Baixando lista de canais principal...")
         try:
             async with session.get(MAIN_M3U_URL) as resp:
                 content = await resp.text()
@@ -189,17 +232,16 @@ async def main():
 
         print(f"Canais online validados: {len(online_channels)}")
 
-        # 2. Grava o arquivo final M3U cruzando com as logos exatas do tjtor8411.com
         with open("lista_limpa.m3u", "w", encoding="utf-8") as f:
             f.write(f'#EXTM3U url-tvg="{EPG_BASE_URL}"\n')
             for ch in online_channels:
                 original_name = ch["name"]
-                logo_url = get_logo_for_channel(original_name, logo_db)
+                logo_url = get_best_logo_url(original_name, logo_map, brand_map)
 
                 new_extinf = f'#EXTINF:-1 tvg-name="{original_name}" tvg-logo="{logo_url}" group-title="{ch["group"]}",{original_name}'
                 f.write(f"{new_extinf}\n{ch['url']}\n")
 
-        print("Lista gerada com sucesso e cruzada com os links reais do tjtor8411.com!")
+        print("Nova lista gerada com sucesso e logos mapeadas por marca!")
 
 if __name__ == "__main__":
     asyncio.run(main())
