@@ -4,7 +4,10 @@ import urllib.parse
 import asyncio
 import aiohttp
 
-M3U_URL = "https://raw.githubusercontent.com/Ramys/Iptv-Brasil-2026/refs/heads/master/CanaisBR01.m3u8"
+# URL do banco de dados oficial do autor que contém TODAS as logos exatas do tjtor8411.com
+LOGOS_M3U_URL = "https://raw.githubusercontent.com/Ramys/Iptv-Brasil-2026/refs/heads/master/CanaisBR03.m3u8"
+# URL principal dos canais
+MAIN_M3U_URL = "https://raw.githubusercontent.com/Ramys/Iptv-Brasil-2026/refs/heads/master/CanaisBR01.m3u8"
 
 ADULT_KEYWORDS = ["xxx", "adulto", "porn", "playboy", "sextreme", "redlight", "venus", "hustler", "18+"]
 VOD_EXTENSIONS = ('.mp4', '.mkv', '.avi', '.mov', '.flv')
@@ -15,91 +18,53 @@ VOD_PATTERNS = [
 ]
 
 EPG_BASE_URL = "https://epg.best/br.xml"
+TJTOR_BASE_LOGO = "http://tjtor8411.com/static/logos/canais/"
 
-# Mapeamento massivo de logos confiáveis
-LOGOS_MAP = {
-    # TV ABERTA & REGIONAIS
-    "globo": "https://logodownload.org/wp-content/uploads/2014/05/rede-globo-logo.png",
-    "sbt": "https://logodownload.org/wp-content/uploads/2014/04/sbt-logo.png",
-    "record": "https://logodownload.org/wp-content/uploads/2014/05/record-tv-logo.png",
-    "band": "https://logodownload.org/wp-content/uploads/2014/05/band-logo.png",
-    "redetv": "https://logodownload.org/wp-content/uploads/2014/05/redetv-logo.png",
-    "cultura": "https://logodownload.org/wp-content/uploads/2018/03/tv-cultura-logo.png",
-    "gazeta": "https://logodownload.org/wp-content/uploads/2018/03/tv-gazeta-logo.png",
-    "agromais": "https://logodownload.org/wp-content/uploads/2020/06/agromais-logo.png",
-    "tv brasil": "https://logodownload.org/wp-content/uploads/2019/12/tv-brasil-logo.png",
-
-    # ESPORTES
-    "sportv": "https://logodownload.org/wp-content/uploads/2017/04/sportv-logo.png",
-    "espn": "https://logodownload.org/wp-content/uploads/2015/05/espn-logo.png",
-    "premiere": "https://logodownload.org/wp-content/uploads/2018/03/premiere-logo.png",
-    "combate": "https://logodownload.org/wp-content/uploads/2018/03/canal-combate-logo.png",
-    "bandsports": "https://logodownload.org/wp-content/uploads/2018/03/bandsports-logo.png",
-    "dazn": "https://logodownload.org/wp-content/uploads/2019/05/dazn-logo.png",
-
-    # FILMES & SÉRIES
-    "telecine": "https://logodownload.org/wp-content/uploads/2018/03/telecine-logo.png",
-    "hbo": "https://logodownload.org/wp-content/uploads/2015/12/hbo-logo.png",
-    "megapix": "https://logodownload.org/wp-content/uploads/2018/03/megapix-logo.png",
-    "tnt": "https://logodownload.org/wp-content/uploads/2015/02/tnt-logo.png",
-    "space": "https://logodownload.org/wp-content/uploads/2018/03/space-logo.png",
-    "axn": "https://logodownload.org/wp-content/uploads/2018/03/axn-logo.png",
-    "warner": "https://logodownload.org/wp-content/uploads/2020/11/warner-channel-logo.png",
-    "universal": "https://logodownload.org/wp-content/uploads/2018/03/universal-tv-logo.png",
-    "paramount": "https://logodownload.org/wp-content/uploads/2020/09/paramount-network-logo.png",
-    "a&e": "https://logodownload.org/wp-content/uploads/2018/03/ae-logo.png",
-    "cinemax": "https://logodownload.org/wp-content/uploads/2018/03/cinemax-logo.png",
-    "amc": "https://logodownload.org/wp-content/uploads/2018/03/amc-logo.png",
-    "studio universal": "https://logodownload.org/wp-content/uploads/2018/03/studio-universal-logo.png",
-
-    # INFANTIL
-    "cartoon": "https://logodownload.org/wp-content/uploads/2017/08/cartoon-network-logo.png",
-    "discovery kids": "https://logodownload.org/wp-content/uploads/2018/03/discovery-kids-logo.png",
-    "gloob": "https://logodownload.org/wp-content/uploads/2018/03/gloob-logo.png",
-    "nickelodeon": "https://logodownload.org/wp-content/uploads/2017/08/nickelodeon-logo.png",
-    "disney": "https://logodownload.org/wp-content/uploads/2017/08/disney-channel-logo.png",
-
-    # NOTÍCIAS & DOCUMENTÁRIOS
-    "globonews": "https://logodownload.org/wp-content/uploads/2018/03/globonews-logo.png",
-    "cnn": "https://logodownload.org/wp-content/uploads/2020/03/cnn-brasil-logo.png",
-    "bandnews": "https://logodownload.org/wp-content/uploads/2018/03/bandnews-tv-logo.png",
-    "jovem pan": "https://logodownload.org/wp-content/uploads/2021/10/jovem-pan-news-logo.png",
-    "discovery": "https://logodownload.org/wp-content/uploads/2018/03/discovery-channel-logo.png",
-    "history": "https://logodownload.org/wp-content/uploads/2018/03/history-channel-logo.png",
-    "national geographic": "https://logodownload.org/wp-content/uploads/2017/09/national-geographic-logo.png",
-    "animal planet": "https://logodownload.org/wp-content/uploads/2018/03/animal-planet-logo.png",
-
-    # VARIEDADES
-    "viva": "https://logodownload.org/wp-content/uploads/2018/03/canal-viva-logo.png",
-    "multishow": "https://logodownload.org/wp-content/uploads/2018/03/multishow-logo.png",
-    "gnt": "https://logodownload.org/wp-content/uploads/2018/03/gnt-logo.png"
-}
-
-def clean_channel_name_for_search(name):
-    """Limpa o nome para busca mantendo a raiz do nome."""
+def get_base_channel_name(name):
+    """Extrai a marca principal do canal ignorando sufixos para batimento de nome."""
     clean = re.sub(r'(?i)\b(4k²|4k|fhd|h265|h\.265|hd²|hd|sd|hq|hevc|raw|1080p|720p|24/7)\b', '', name)
     clean = re.sub(r'[\[\]\(\)\²|]', '', clean)
-    clean = re.sub(r'\s+', ' ', clean).strip()
-    return clean if clean else name
+    clean = re.sub(r'\s+', ' ', clean).strip().lower()
+    return clean if clean else name.lower()
 
-def get_guaranteed_logo_url(channel_name):
-    """Garante que NENHUM canal fique sem logo (3 níveis de fallback)."""
-    clean_name = clean_channel_name_for_search(channel_name).lower()
+async def load_tjtor_logo_database(session):
+    """Lê a lista oficial CanaisBR03 e extrai 100% dos links de logos do tjtor8411.com"""
+    logo_map = {}
+    print("Baixando mapeamento oficial de logos do tjtor8411.com...")
+    try:
+        async with session.get(LOGOS_M3U_URL, timeout=15) as resp:
+            if resp.status == 200:
+                text = await resp.text()
+                for line in text.splitlines():
+                    if line.startswith("#EXTINF:"):
+                        logo_match = re.search(r'tvg-logo="([^"]+)"', line)
+                        name = line.split(",")[-1].strip() if "," in line else ""
+                        if logo_match and name:
+                            logo_url = logo_match.group(1)
+                            base_name = get_base_channel_name(name)
+                            logo_map[base_name] = logo_url
+                print(f"Mapeamento carregado com sucesso! {len(logo_map)} logos oficiais encontradas.")
+    except Exception as e:
+        print(f"Aviso ao carregar banco de logos: {e}")
+    return logo_map
 
-    # 1. Busca no Dicionário
-    for key, logo_url in LOGOS_MAP.items():
-        if key in clean_name:
+def get_logo_for_channel(channel_name, logo_db):
+    """Obtém a logo do banco de dados oficial ou gera no padrão exato do servidor tjtor8411."""
+    base_name = get_base_channel_name(channel_name)
+
+    # 1. Busca exata no banco de dados extraído do CanaisBR03
+    if base_name in logo_db:
+        return logo_db[base_name]
+
+    # 2. Busca parcial (ex: "globo sp" encontra a logo de "globo")
+    for db_name, logo_url in logo_db.items():
+        if db_name in base_name or base_name in db_name:
             return logo_url
 
-    # 2. Servidor IPTV dedicado
-    formatted_name = urllib.parse.quote(clean_name)
-    
-    # 3. Fallback Universal: Gerador de Ícones Elegantes de Alta Definição (Caso não exista imagem)
-    # Cria uma logo escura moderna com as iniciais do canal para preencher 100% dos itens
-    short_name = clean_name[:12].upper()
-    fallback_icon = f"https://ui-avatars.com/api/?name={urllib.parse.quote(short_name)}&background=1f2937&color=ffffff&size=512&font-size=0.33&bold=true&length=3"
-    
-    return fallback_icon
+    # 3. Fallback no padrão do servidor tjtor8411 (converte espaços em sublinhado e codifica caracteres especiais como &)
+    formatted_filename = base_name.replace(" ", "_")
+    encoded_filename = urllib.parse.quote(formatted_filename)
+    return f"{TJTOR_BASE_LOGO}{encoded_filename}.png"
 
 async def check_stream(session, url, semaphore):
     """Testa se a URL do canal responde status 200."""
@@ -188,13 +153,16 @@ def classify_channel(channel):
     return channel
 
 async def main():
-    print("Baixando lista M3U original...")
     async with aiohttp.ClientSession() as session:
+        # 1. Carrega o banco de dados oficial de logos do tjtor8411.com
+        logo_db = await load_tjtor_logo_database(session)
+
+        print("Baixando lista de canais...")
         try:
-            async with session.get(M3U_URL) as resp:
+            async with session.get(MAIN_M3U_URL) as resp:
                 content = await resp.text()
         except Exception as e:
-            print(f"Erro ao baixar lista: {e}")
+            print(f"Erro ao baixar lista principal: {e}")
             return
 
         channels = parse_m3u(content)
@@ -221,17 +189,17 @@ async def main():
 
         print(f"Canais online validados: {len(online_channels)}")
 
-        # Gravando arquivo final M3U
+        # 2. Grava o arquivo final M3U cruzando com as logos exatas do tjtor8411.com
         with open("lista_limpa.m3u", "w", encoding="utf-8") as f:
             f.write(f'#EXTM3U url-tvg="{EPG_BASE_URL}"\n')
             for ch in online_channels:
                 original_name = ch["name"]
-                logo_url = get_guaranteed_logo_url(original_name)
+                logo_url = get_logo_for_channel(original_name, logo_db)
 
                 new_extinf = f'#EXTINF:-1 tvg-name="{original_name}" tvg-logo="{logo_url}" group-title="{ch["group"]}",{original_name}'
                 f.write(f"{new_extinf}\n{ch['url']}\n")
 
-        print("Nova lista gerada com 100% dos canais com logos validadas e sem itens vazios!")
+        print("Lista gerada com sucesso e cruzada com os links reais do tjtor8411.com!")
 
 if __name__ == "__main__":
     asyncio.run(main())
