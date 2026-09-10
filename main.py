@@ -13,78 +13,82 @@ VOD_PATTERNS = [
     r'\bWEBRIP\b', r'\bWEB-DL\b', r'\bBLURAY\b'
 ]
 
-# Base de Logos PNGs transparentes em alta qualidade
-LOGOS_MAP = {
-    "a&e": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/A%26E_Network_logo.svg/512px-A%26E_Network_logo.svg.png",
-    "agromais": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/69/AgroMais_logo.png/512px-AgroMais_logo.png",
-    "globo": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/TV_Globo_logo_2021.svg/512px-TV_Globo_logo_2021.svg.png",
-    "sbt": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/SBT_logo_2014.svg/512px-SBT_logo_2014.svg.png",
-    "record": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/Record_TV_logo_2023.svg/512px-Record_TV_logo_2023.svg.png",
-    "band": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d2/Rede_Bandeirantes_logo.svg/512px-Rede_Bandeirantes_logo.svg.png",
-    "redetv": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/88/RedeTV%21_logo.svg/512px-RedeTV%21_logo.svg.png",
-    "cultura": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/TV_Cultura_logo_2019.svg/512px-TV_Cultura_logo_2019.svg.png",
-    "gazeta": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/TV_Gazeta_logo.svg/512px-TV_Gazeta_logo.svg.png",
+# Base de Logos Diretas e Estáveis (PNG transparente sem bloqueios)
+DIRECT_LOGOS = {
+    # VARIADAS / FILMES / SÉRIES
+    "a&e": "https://logodownload.org/wp-content/uploads/2018/03/ae-logo.png",
+    "agromais": "https://logodownload.org/wp-content/uploads/2020/06/agromais-logo.png",
+    "telecine": "https://logodownload.org/wp-content/uploads/2018/03/telecine-logo.png",
+    "hbo": "https://logodownload.org/wp-content/uploads/2015/12/hbo-logo.png",
+    "megapix": "https://logodownload.org/wp-content/uploads/2018/03/megapix-logo.png",
+    "tnt": "https://logodownload.org/wp-content/uploads/2015/02/tnt-logo.png",
+    "space": "https://logodownload.org/wp-content/uploads/2018/03/space-logo.png",
+    "axn": "https://logodownload.org/wp-content/uploads/2018/03/axn-logo.png",
+    "warner": "https://logodownload.org/wp-content/uploads/2020/11/warner-channel-logo.png",
+    "universal": "https://logodownload.org/wp-content/uploads/2018/03/universal-tv-logo.png",
+    "paramount": "https://logodownload.org/wp-content/uploads/2020/09/paramount-network-logo.png",
+    "cinemax": "https://logodownload.org/wp-content/uploads/2018/03/cinemax-logo.png",
 
-    "sportv": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/SporTV_logo_2021.svg/512px-SporTV_logo_2021.svg.png",
-    "espn": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/ESPN_wordmark.svg/512px-ESPN_wordmark.svg.png",
-    "premiere": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Premiere_logo_2021.svg/512px-Premiere_logo_2021.svg.png",
-    "combate": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Canal_Combate_logo.svg/512px-Canal_Combate_logo.svg.png",
-    "bandsports": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/db/BandSports_logo.png/512px-BandSports_logo.png",
+    # TV ABERTA
+    "globo": "https://logodownload.org/wp-content/uploads/2014/05/rede-globo-logo.png",
+    "sbt": "https://logodownload.org/wp-content/uploads/2014/04/sbt-logo.png",
+    "record": "https://logodownload.org/wp-content/uploads/2014/05/record-tv-logo.png",
+    "band": "https://logodownload.org/wp-content/uploads/2014/05/band-logo.png",
+    "redetv": "https://logodownload.org/wp-content/uploads/2014/05/redetv-logo.png",
+    "cultura": "https://logodownload.org/wp-content/uploads/2018/03/tv-cultura-logo.png",
 
-    "telecine": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/Telecine_logo_2019.svg/512px-Telecine_logo_2019.svg.png",
-    "hbo": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/de/HBO_logo.svg/512px-HBO_logo.svg.png",
-    "megapix": "https://raw.githubusercontent.com/iptv-org/iptv/master/logos/Megapix.png",
-    "tnt": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/07/TNT_Logo_2016.svg/512px-TNT_Logo_2016.svg.png",
-    "space": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Space_Channel_Logo.svg/512px-Space_Channel_Logo.svg.png",
-    "axn": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/AXN_logo_2015.svg/512px-AXN_logo_2015.svg.png",
-    "warner": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/Warner_TV_logo_2021.svg/512px-Warner_TV_logo_2021.svg.png",
-    "universal": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/23/Universal_TV_logo.svg/512px-Universal_TV_logo.svg.png",
-    "paramount": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Paramount_Network_2018.svg/512px-Paramount_Network_2018.svg.png",
-    "cinemax": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8b/Cinemax_2011_logo.svg/512px-Cinemax_2011_logo.svg.png",
+    # ESPORTES
+    "sportv": "https://logodownload.org/wp-content/uploads/2017/04/sportv-logo.png",
+    "espn": "https://logodownload.org/wp-content/uploads/2015/05/espn-logo.png",
+    "premiere": "https://logodownload.org/wp-content/uploads/2018/03/premiere-logo.png",
+    "combate": "https://logodownload.org/wp-content/uploads/2018/03/canal-combate-logo.png",
+    "bandsports": "https://logodownload.org/wp-content/uploads/2018/03/bandsports-logo.png",
 
-    "cartoon network": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/Cartoon_Network_2010_logo.svg/512px-Cartoon_Network_2010_logo.svg.png",
-    "discovery kids": "https://raw.githubusercontent.com/iptv-org/iptv/master/logos/DiscoveryKids.png",
-    "gloob": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b1/Gloob_logo_2017.svg/512px-Gloob_logo_2017.svg.png",
-    "nickelodeon": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/Nickelodeon_2023_logo.svg/512px-Nickelodeon_2023_logo.svg.png",
-    "disney": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d2/Disney_Channel_logo.svg/512px-Disney_Channel_logo.svg.png",
+    # INFANTIL
+    "cartoon": "https://logodownload.org/wp-content/uploads/2017/08/cartoon-network-logo.png",
+    "discovery kids": "https://logodownload.org/wp-content/uploads/2018/03/discovery-kids-logo.png",
+    "gloob": "https://logodownload.org/wp-content/uploads/2018/03/gloob-logo.png",
+    "nickelodeon": "https://logodownload.org/wp-content/uploads/2017/08/nickelodeon-logo.png",
+    "disney": "https://logodownload.org/wp-content/uploads/2017/08/disney-channel-logo.png",
 
-    "globonews": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/GloboNews_logo_2021.svg/512px-GloboNews_logo_2021.svg.png",
-    "cnn brasil": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/CNN_Brasil_logo.svg/512px-CNN_Brasil_logo.svg.png",
-    "bandnews": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/BandNews_TV_logo.svg/512px-BandNews_TV_logo.svg.png",
-    "jovem pan news": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Jovem_Pan_News_logo.svg/512px-Jovem_Pan_News_logo.svg.png",
-    "discovery": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f1/Discovery_Channel_logo_2019.svg/512px-Discovery_Channel_logo_2019.svg.png",
-    "history": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f5/History_Logo.svg/512px-History_Logo.svg.png",
-    "national geographic": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/National_Geographic_logo.svg/512px-National_Geographic_logo.svg.png",
+    # NOTÍCIAS & DOCUMENTÁRIOS
+    "globonews": "https://logodownload.org/wp-content/uploads/2018/03/globonews-logo.png",
+    "cnn brasil": "https://logodownload.org/wp-content/uploads/2020/03/cnn-brasil-logo.png",
+    "bandnews": "https://logodownload.org/wp-content/uploads/2018/03/bandnews-tv-logo.png",
+    "discovery": "https://logodownload.org/wp-content/uploads/2018/03/discovery-channel-logo.png",
+    "history": "https://logodownload.org/wp-content/uploads/2018/03/history-channel-logo.png",
+    "national geographic": "https://logodownload.org/wp-content/uploads/2017/09/national-geographic-logo.png",
 
-    "viva": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/Canal_Viva_logo_2018.svg/512px-Canal_Viva_logo_2018.svg.png",
-    "multishow": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Multishow_logo_2021.svg/512px-Multishow_logo_2021.svg.png",
-    "gnt": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7f/GNT_logo_2021.svg/512px-GNT_logo_2021.svg.png"
+    # VARIEDADES
+    "viva": "https://logodownload.org/wp-content/uploads/2018/03/canal-viva-logo.png",
+    "multishow": "https://logodownload.org/wp-content/uploads/2018/03/multishow-logo.png",
+    "gnt": "https://logodownload.org/wp-content/uploads/2018/03/gnt-logo.png"
 }
 
 EPG_BASE_URL = "https://epg.best/br.xml"
 
 def get_base_name_for_logo(name):
-    """Extrai apenas o nome principal do canal para buscar a logo sem remover do nome do canal."""
+    """Obtém o nome base para cruzamento de logo preservando a marca principal."""
     clean = re.sub(r'(?i)\b(4k²|4k|fhd|h265|h\.265|hd²|hd|sd|hq|hevc|raw|1080p|720p)\b', '', name)
     clean = re.sub(r'[\[\]\(\)\²]', '', clean)
     clean = re.sub(r'\s+', ' ', clean).strip()
     return clean if clean else name
 
 def get_logo_url(channel_name):
-    """Encontra a URL da logo correspondente ao nome do canal."""
+    """Mapeia a URL limpa e direta da logo sem bloqueios de CDN."""
     base_name = get_base_name_for_logo(channel_name).lower()
     
-    # 1. Busca na tabela de logos diretas
-    for key, logo_url in LOGOS_MAP.items():
+    # 1. Procura na tabela oficial de logos limpas
+    for key, logo_url in DIRECT_LOGOS.items():
         if key in base_name:
             return logo_url
             
-    # 2. Se não estiver no mapa, busca no repositório de logos iptv-org
+    # 2. Servidor público secundário de logos em PNG
     formatted_name = re.sub(r'[^a-zA-Z0-9]', '', base_name)
-    return f"https://raw.githubusercontent.com/iptv-org/iptv/master/logos/{formatted_name}.png"
+    return f"https://raw.githubusercontent.com/iptv-org/database/master/data/logos/{formatted_name}.png"
 
 async def check_stream(session, url, semaphore):
-    """Testa se a URL do canal responde com status 200 via HEAD ou GET."""
+    """Testa se a URL responde status HTTP 200 de forma rápida."""
     if not url.startswith("http"):
         return False
     async with semaphore:
@@ -203,18 +207,18 @@ async def main():
 
         print(f"Canais online validados: {len(online_channels)}")
 
-        # Gravando arquivo final M3U no formato exato solicitado
+        # Gravando arquivo final M3U
         with open("lista_limpa.m3u", "w", encoding="utf-8") as f:
             f.write(f'#EXTM3U url-tvg="{EPG_BASE_URL}"\n')
             for ch in online_channels:
                 original_name = ch["name"]
                 logo_url = get_logo_url(original_name)
 
-                # Formatação exata com tvg-name, tvg-logo, group-title e mantendo a qualidade no nome
+                # Formatação completa mantendo a qualidade no nome do canal
                 new_extinf = f'#EXTINF:-1 tvg-name="{original_name}" tvg-logo="{logo_url}" group-title="{ch["group"]}",{original_name}'
                 f.write(f"{new_extinf}\n{ch['url']}\n")
 
-        print("Nova lista gerada com sucesso mantendo as qualidades e injetando tvg-name/tvg-logo!")
+        print("Nova lista gerada com sucesso e com URLs diretas de logos!")
 
 if __name__ == "__main__":
     asyncio.run(main())
