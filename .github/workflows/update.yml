@@ -1,0 +1,36 @@
+name: Atualizar Lista IPTV Diariamente
+
+on:
+  schedule:
+    # Roda todos os dias às 03:00 AM (Horário de Brasília)
+    - cron: '0 6 * * *'
+  workflow_dispatch: # Permite rodar manualmente a qualquer momento
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar código do repositório
+        uses: actions/checkout@v3
+
+      - name: Configurar Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Instalar dependências
+        run: |
+          python -m pip install --upgrade pip
+          pip install aiohttp
+
+      - name: Executar script de limpeza
+        run: python main.py
+
+      - name: Salvar lista atualizada no repositório
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add lista_limpa.m3u
+          git commit -m "Atualização automática da lista IPTV" || exit 0
+          git push
