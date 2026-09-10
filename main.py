@@ -5,59 +5,83 @@ import aiohttp
 
 M3U_URL = "https://raw.githubusercontent.com/Ramys/Iptv-Brasil-2026/refs/heads/master/CanaisBR01.m3u8"
 
-# Termos que identificam conteúdo adulto
 ADULT_KEYWORDS = ["xxx", "adulto", "porn", "playboy", "sextreme", "redlight", "venus", "hustler", "18+"]
-
-# Expressões regulares e padrões para detectar Filmes e Séries On Demand (VOD)
 VOD_EXTENSIONS = ('.mp4', '.mkv', '.avi', '.mov', '.flv')
 VOD_PATTERNS = [
-    r'\b(19\d{2}|20\d{2})\b',             # Anos ex: (1999), 2023
-    r'\bS\d{1,2}\s*E\d{1,2}\b',           # Padrão S01E01, S1E2
-    r'\b\d{1,2}x\d{1,2}\b',               # Padrão 1x01, 02x05
-    r'\bTEMPORADA\b',                     # Palavra Temporada
-    r'\bEPISODIO\b',                      # Palavra Episodio
-    r'\bDUBLADO\b', r'\bLEGENDADO\b',     # Indicadores de arquivo VOD
-    r'\b720P\b', r'\b1080P\b', r'\b4K\b', # Resoluções comuns em releases de filmes
+    r'\b(19\d{2}|20\d{2})\b',
+    r'\bS\d{1,2}\s*E\d{1,2}\b',
+    r'\b\d{1,2}x\d{1,2}\b',
+    r'\bTEMPORADA\b',
+    r'\bEPISODIO\b',
+    r'\bDUBLADO\b', r'\bLEGENDADO\b',
+    r'\b720P\b', r'\b1080P\b', r'\b4K\b',
     r'\bWEBRIP\b', r'\bWEB-DL\b', r'\bBLURAY\b'
 ]
 
+# Base pública EPG e Logos
 EPG_BASE_URL = "https://epg.best/br.xml"
+LOGOS_MAPPING_URL = "https://raw.githubusercontent.com/iptv-org/iptv/master/streams/br.m3u"
+
+async def load_logo_database(session):
+    """Baixa um mapeamento público de canais do Brasil com logos."""
+    logo_dict = {}
+    try:
+        async with session.get(LOGOS_MAPPING_URL, timeout=10) as resp:
+            if resp.status == 200:
+                text = await resp.text()
+                for line in text.splitlines():
+                    if line.startswith("#EXTINF:"):
+                        logo_match = re.search(r'tvg-logo="([^"]+)"', line)
+                        name = line.split(",")[-1].strip() if "," in line else ""
+                        if logo_match and name:
+                            clean_n = clean_channel_name(name).lower()
+                            logo_dict[clean_n] = logo_match.group(1)
+    except Exception as e:
+        print(f"Aviso: Não foi possível carregar base externa de logos: {e}")
+    return logo_dict
+
+def clean_channel_name(name):
+    """Remove sufixos de qualidade e caracteres para busca de logo e exibição limpa."""
+    # Remove termos como 4K, FHD, HD, SD, [RAW], 4K², etc.
+    cleaned = re.sub(r'(?i)\b(4k²|4k|fhd|hd|sd|hq|hevc|raw|1080p|720p)\b', '', name)
+    cleaned = re.sub(r'[\[\]\(\)\²]', '', cleaned)
+    cleaned = re.sub(r'\s+', ' ', cleaned).strip()
+    return cleaned if cleaned else name
 
 async def check_stream(session, url, semaphore):
-    """Testa se o link de streaming está respondendo online."""
+    """Testa se a URL é um fluxo de mídia ativo válido e não um erro mascarado."""
     if not url.startswith("http"):
         return False
     async with semaphore:
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
         try:
-            async with session.head(url, timeout=2.5, allow_redirects=True) as response:
-                return response.status == 200
+            async with session.get(url, timeout=3.5, headers=headers, allow_redirects=True) as response:
+                if response.status != 200:
+                    return False
+                content_type = response.headers.get('Content-Type', '').lower()
+                # Rejeita páginas HTML que fingem ser status 200
+                if 'text/html' in content_type:
+                    return False
+                return True
         except Exception:
-            try:
-                async with session.get(url, timeout=2.5, allow_redirects=True) as response:
-                    return response.status == 200
-            except Exception:
-                return False
+            return False
 
 def is_adult(text):
     text_lower = text.lower()
     return any(k in text_lower for k in ADULT_KEYWORDS)
 
 def is_vod(name, group, url):
-    """Detecta se o item é um filme ou série On Demand pela URL ou Nome."""
     url_lower = url.lower()
     name_upper = name.upper()
     group_upper = group.upper()
 
-    # Checagem 1: Extensão do arquivo na URL (.mp4, .mkv, etc)
     if url_lower.endswith(VOD_EXTENSIONS) or "/movie/" in url_lower or "/series/" in url_lower:
         return True
 
-    # Checagem 2: Palavras-chave de VOD na Categoria ou Nome
     if any(k in group_upper for k in ["VOD", "FILMES", "SERIES", "NETFLIX", "PRIME", "HBO MAX"]):
-        if "24/7" not in group_upper: # Permite canais 24 horas contínuos
+        if "24/7" not in group_upper:
             return True
 
-    # Checagem 3: Padrões de ano, temporada e dublagem no nome do título
     for pattern in VOD_PATTERNS:
         if re.search(pattern, name_upper):
             return True
@@ -91,14 +115,12 @@ def classify_channel(channel):
     group = channel["group"]
     url = channel["url"]
 
-    # Elimina Conteúdo Adulto ou VODs
     if is_adult(group) or is_adult(name) or is_vod(name, group, url):
         return None
 
     group_upper = group.upper()
     name_upper = name.upper()
 
-    # Categorização de Canais de TV Ao Vivo
     if "24/7" in group_upper or "24/7" in name_upper:
         channel["group"] = "Canais 24/7 (Séries & Programas)"
     elif any(k in group_upper or k in name_upper for k in ["ESPORTE", "SPORT", "PREMIERE", "ESPN", "BANDSPORTS", "COMBATE"]):
@@ -121,6 +143,9 @@ def classify_channel(channel):
 async def main():
     print("Baixando lista M3U...")
     async with aiohttp.ClientSession() as session:
+        # Carrega base de logos
+        logo_db = await load_logo_database(session)
+
         try:
             async with session.get(M3U_URL) as resp:
                 content = await resp.text()
@@ -129,20 +154,18 @@ async def main():
             return
 
         channels = parse_m3u(content)
-        print(f"Total bruto de linhas/itens lidos: {len(channels)}")
+        print(f"Total bruto de itens lidos: {len(channels)}")
 
-        # Filtragem por regras
         live_channels = []
         for ch in channels:
             classified = classify_channel(ch)
             if classified:
                 live_channels.append(classified)
 
-        print(f"Canais de TV Ao Vivo restantes após filtro de VOD e Adultos: {len(live_channels)}")
+        print(f"Canais de TV Ao Vivo filtrados: {len(live_channels)}")
 
-        # Verificação online simultânea
-        print("Iniciando testes de sinal online...")
-        semaphore = asyncio.Semaphore(100)
+        print("Iniciando verificação rigorosa de sinal online...")
+        semaphore = asyncio.Semaphore(40) # Testes simultâneos para verificação mais precisa
         
         async def verify(ch):
             online = await check_stream(session, ch["url"], semaphore)
@@ -152,18 +175,39 @@ async def main():
         results = await asyncio.gather(*tasks)
         online_channels = [ch for ch in results if ch is not None]
 
-        print(f"Canais 100% ativos salvos: {len(online_channels)}")
+        print(f"Canais 100% ativos e validados: {len(online_channels)}")
 
-        # Gravação da lista M3U limpa
+        # Gravando arquivo final M3U
         with open("lista_limpa.m3u", "w", encoding="utf-8") as f:
             f.write(f'#EXTM3U url-tvg="{EPG_BASE_URL}"\n')
             for ch in online_channels:
-                extinf = re.sub(r'group-title="[^"]+"', f'group-title="{ch["group"]}"', ch["extinf"])
+                clean_name = clean_channel_name(ch["name"])
+                clean_key = clean_name.lower()
+                
+                # Busca logo
+                logo_url = logo_db.get(clean_key, "")
+                
+                extinf = ch["extinf"]
+                # Atualiza ou insere group-title
+                extinf = re.sub(r'group-title="[^"]+"', f'group-title="{ch["group"]}"', extinf)
                 if 'group-title=' not in extinf:
                     extinf = extinf.replace("#EXTINF:-1", f'#EXTINF:-1 group-title="{ch["group"]}"')
+
+                # Injeta a tag tvg-logo
+                if logo_url:
+                    if 'tvg-logo=' in extinf:
+                        extinf = re.sub(r'tvg-logo="[^"]+"', f'tvg-logo="{logo_url}"', extinf)
+                    else:
+                        extinf = extinf.replace('#EXTINF:-1', f'#EXTINF:-1 tvg-logo="{logo_url}"')
+
+                # Substitui o nome do canal pelo nome limpo
+                if "," in extinf:
+                    prefix = extinf.rsplit(",", 1)[0]
+                    extinf = f"{prefix},{clean_name}"
+
                 f.write(f"{extinf}\n{ch['url']}\n")
 
-        print("Arquivo 'lista_limpa.m3u' gerado com sucesso!")
+        print("Lista 'lista_limpa.m3u' atualizada com sucesso com Logos e Filtro Rigoroso!")
 
 if __name__ == "__main__":
     asyncio.run(main())
