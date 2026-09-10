@@ -1,5 +1,6 @@
 import os
 import re
+import urllib.parse
 import asyncio
 import aiohttp
 
@@ -13,82 +14,26 @@ VOD_PATTERNS = [
     r'\bWEBRIP\b', r'\bWEB-DL\b', r'\bBLURAY\b'
 ]
 
-# Base de Logos Diretas e Estáveis (PNG transparente sem bloqueios)
-DIRECT_LOGOS = {
-    # VARIADAS / FILMES / SÉRIES
-    "a&e": "https://logodownload.org/wp-content/uploads/2018/03/ae-logo.png",
-    "agromais": "https://logodownload.org/wp-content/uploads/2020/06/agromais-logo.png",
-    "telecine": "https://logodownload.org/wp-content/uploads/2018/03/telecine-logo.png",
-    "hbo": "https://logodownload.org/wp-content/uploads/2015/12/hbo-logo.png",
-    "megapix": "https://logodownload.org/wp-content/uploads/2018/03/megapix-logo.png",
-    "tnt": "https://logodownload.org/wp-content/uploads/2015/02/tnt-logo.png",
-    "space": "https://logodownload.org/wp-content/uploads/2018/03/space-logo.png",
-    "axn": "https://logodownload.org/wp-content/uploads/2018/03/axn-logo.png",
-    "warner": "https://logodownload.org/wp-content/uploads/2020/11/warner-channel-logo.png",
-    "universal": "https://logodownload.org/wp-content/uploads/2018/03/universal-tv-logo.png",
-    "paramount": "https://logodownload.org/wp-content/uploads/2020/09/paramount-network-logo.png",
-    "cinemax": "https://logodownload.org/wp-content/uploads/2018/03/cinemax-logo.png",
-
-    # TV ABERTA
-    "globo": "https://logodownload.org/wp-content/uploads/2014/05/rede-globo-logo.png",
-    "sbt": "https://logodownload.org/wp-content/uploads/2014/04/sbt-logo.png",
-    "record": "https://logodownload.org/wp-content/uploads/2014/05/record-tv-logo.png",
-    "band": "https://logodownload.org/wp-content/uploads/2014/05/band-logo.png",
-    "redetv": "https://logodownload.org/wp-content/uploads/2014/05/redetv-logo.png",
-    "cultura": "https://logodownload.org/wp-content/uploads/2018/03/tv-cultura-logo.png",
-
-    # ESPORTES
-    "sportv": "https://logodownload.org/wp-content/uploads/2017/04/sportv-logo.png",
-    "espn": "https://logodownload.org/wp-content/uploads/2015/05/espn-logo.png",
-    "premiere": "https://logodownload.org/wp-content/uploads/2018/03/premiere-logo.png",
-    "combate": "https://logodownload.org/wp-content/uploads/2018/03/canal-combate-logo.png",
-    "bandsports": "https://logodownload.org/wp-content/uploads/2018/03/bandsports-logo.png",
-
-    # INFANTIL
-    "cartoon": "https://logodownload.org/wp-content/uploads/2017/08/cartoon-network-logo.png",
-    "discovery kids": "https://logodownload.org/wp-content/uploads/2018/03/discovery-kids-logo.png",
-    "gloob": "https://logodownload.org/wp-content/uploads/2018/03/gloob-logo.png",
-    "nickelodeon": "https://logodownload.org/wp-content/uploads/2017/08/nickelodeon-logo.png",
-    "disney": "https://logodownload.org/wp-content/uploads/2017/08/disney-channel-logo.png",
-
-    # NOTÍCIAS & DOCUMENTÁRIOS
-    "globonews": "https://logodownload.org/wp-content/uploads/2018/03/globonews-logo.png",
-    "cnn brasil": "https://logodownload.org/wp-content/uploads/2020/03/cnn-brasil-logo.png",
-    "bandnews": "https://logodownload.org/wp-content/uploads/2018/03/bandnews-tv-logo.png",
-    "discovery": "https://logodownload.org/wp-content/uploads/2018/03/discovery-channel-logo.png",
-    "history": "https://logodownload.org/wp-content/uploads/2018/03/history-channel-logo.png",
-    "national geographic": "https://logodownload.org/wp-content/uploads/2017/09/national-geographic-logo.png",
-
-    # VARIEDADES
-    "viva": "https://logodownload.org/wp-content/uploads/2018/03/canal-viva-logo.png",
-    "multishow": "https://logodownload.org/wp-content/uploads/2018/03/multishow-logo.png",
-    "gnt": "https://logodownload.org/wp-content/uploads/2018/03/gnt-logo.png"
-}
-
 EPG_BASE_URL = "https://epg.best/br.xml"
+LOGO_BASE_SERVER = "http://tjtor8411.com/static/logos/canais/"
 
 def get_base_name_for_logo(name):
-    """Obtém o nome base para cruzamento de logo preservando a marca principal."""
+    """Remove qualidades e sufixos para gerar o nome do arquivo PNG da logo."""
     clean = re.sub(r'(?i)\b(4k²|4k|fhd|h265|h\.265|hd²|hd|sd|hq|hevc|raw|1080p|720p)\b', '', name)
     clean = re.sub(r'[\[\]\(\)\²]', '', clean)
     clean = re.sub(r'\s+', ' ', clean).strip()
     return clean if clean else name
 
-def get_logo_url(channel_name):
-    """Mapeia a URL limpa e direta da logo sem bloqueios de CDN."""
+def build_iptv_logo_url(channel_name):
+    """Gera a URL da logo usando o servidor de logos de IPTV (tjtor8411.com)."""
     base_name = get_base_name_for_logo(channel_name).lower()
     
-    # 1. Procura na tabela oficial de logos limpas
-    for key, logo_url in DIRECT_LOGOS.items():
-        if key in base_name:
-            return logo_url
-            
-    # 2. Servidor público secundário de logos em PNG
-    formatted_name = re.sub(r'[^a-zA-Z0-9]', '', base_name)
-    return f"https://raw.githubusercontent.com/iptv-org/database/master/data/logos/{formatted_name}.png"
+    # Mapeamento e codificação da URL (ex: a&e vira a%26e)
+    encoded_name = urllib.parse.quote(base_name)
+    return f"{LOGO_BASE_SERVER}{encoded_name}.png"
 
 async def check_stream(session, url, semaphore):
-    """Testa se a URL responde status HTTP 200 de forma rápida."""
+    """Testa se a URL do canal responde com status 200."""
     if not url.startswith("http"):
         return False
     async with semaphore:
@@ -212,13 +157,12 @@ async def main():
             f.write(f'#EXTM3U url-tvg="{EPG_BASE_URL}"\n')
             for ch in online_channels:
                 original_name = ch["name"]
-                logo_url = get_logo_url(original_name)
+                logo_url = build_iptv_logo_url(original_name)
 
-                # Formatação completa mantendo a qualidade no nome do canal
                 new_extinf = f'#EXTINF:-1 tvg-name="{original_name}" tvg-logo="{logo_url}" group-title="{ch["group"]}",{original_name}'
                 f.write(f"{new_extinf}\n{ch['url']}\n")
 
-        print("Nova lista gerada com sucesso e com URLs diretas de logos!")
+        print("Nova lista gerada com sucesso usando o servidor de logos tjtor8411.com!")
 
 if __name__ == "__main__":
     asyncio.run(main())
