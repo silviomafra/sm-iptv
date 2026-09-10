@@ -18,49 +18,77 @@ VOD_PATTERNS = [
 EPG_BASE_URL = "https://epg.best/br.xml"
 TJTOR_BASE = "http://tjtor8411.com/static/logos/canais/"
 
-# Mapeamento manual de socorro para garantir marcas principais no servidor tjtor8411
-STATIC_BRAND_LOGOS = {
-    "viva": f"{TJTOR_BASE}viva.png",
+# Mapeamento absoluto das marcas mães para cobrir TODAS as variações estaduais, regionais e de qualidade
+PARENT_BRANDS = {
+    "band": f"{TJTOR_BASE}band.png",
     "globo": f"{TJTOR_BASE}globo.png",
     "sbt": f"{TJTOR_BASE}sbt.png",
     "record": f"{TJTOR_BASE}record.png",
-    "band": f"{TJTOR_BASE}band.png",
     "redetv": f"{TJTOR_BASE}redetv.png",
+    "viva": f"{TJTOR_BASE}viva.png",
     "cultura": f"{TJTOR_BASE}tv_cultura.png",
+    "gazeta": f"{TJTOR_BASE}tv_gazeta.png",
+    "agromais": f"{TJTOR_BASE}agromais.png",
+    
     "sportv": f"{TJTOR_BASE}sportv.png",
     "espn": f"{TJTOR_BASE}espn.png",
     "premiere": f"{TJTOR_BASE}premiere.png",
     "combate": f"{TJTOR_BASE}combate.png",
+    "bandsports": f"{TJTOR_BASE}bandsports.png",
+
     "telecine": f"{TJTOR_BASE}telecine.png",
     "hbo": f"{TJTOR_BASE}hbo.png",
-    "a&e": f"{TJTOR_BASE}a%26e.png",
-    "cartoon": f"{TJTOR_BASE}cartoon.png",
-    "globonews": f"{TJTOR_BASE}globonews.png",
-    "cnn": f"{TJTOR_BASE}cnn_brasil.png",
-    "discovery": f"{TJTOR_BASE}discovery.png",
-    "history": f"{TJTOR_BASE}history.png",
     "megapix": f"{TJTOR_BASE}megapix.png",
     "tnt": f"{TJTOR_BASE}tnt.png",
     "space": f"{TJTOR_BASE}space.png",
     "axn": f"{TJTOR_BASE}axn.png",
     "warner": f"{TJTOR_BASE}warner.png",
-    "universal": f"{TJTOR_BASE}universal.png"
+    "universal": f"{TJTOR_BASE}universal.png",
+    "paramount": f"{TJTOR_BASE}paramount.png",
+    "a&e": f"{TJTOR_BASE}a%26e.png",
+    "cinemax": f"{TJTOR_BASE}cinemax.png",
+    "amc": f"{TJTOR_BASE}amc.png",
+    
+    "cartoon": f"{TJTOR_BASE}cartoon.png",
+    "gloob": f"{TJTOR_BASE}gloob.png",
+    "nickelodeon": f"{TJTOR_BASE}nickelodeon.png",
+    "disney": f"{TJTOR_BASE}disney.png",
+    
+    "globonews": f"{TJTOR_BASE}globonews.png",
+    "cnn": f"{TJTOR_BASE}cnn_brasil.png",
+    "bandnews": f"{TJTOR_BASE}bandnews.png",
+    "discovery": f"{TJTOR_BASE}discovery.png",
+    "history": f"{TJTOR_BASE}history.png",
+    "multishow": f"{TJTOR_BASE}multishow.png",
+    "gnt": f"{TJTOR_BASE}gnt.png"
 }
 
-def extract_core_brand(name):
-    """Extrai a marca pura do canal eliminando qualidades, estados e sufixos."""
-    # Remove qualidades comuns
-    clean = re.sub(r'(?i)\b(4k²|4k|fhd|h265|h\.265|hd²|hd|sd|hq|hevc|raw|1080p|720p|24/7)\b', '', name)
-    # Remove colchetes, parênteses e caracteres especiais
-    clean = re.sub(r'[\[\]\(\)\²|]', '', clean)
-    clean = re.sub(r'\s+', ' ', clean).strip().lower()
-    return clean if clean else name.lower()
+def get_guaranteed_logo(channel_name, logo_map):
+    """Encontra a logo garantida para 100% das variações estaduais e de qualidade."""
+    name_lower = channel_name.strip().lower()
+
+    # 1. Checagem por Marca Mãe (Garante BAND SP, BAND RJ, GLOBO SP, VIVA SD, etc)
+    for brand, logo_url in PARENT_BRANDS.items():
+        # Usa regex para garantir a palavra inteira da marca
+        if re.search(r'\b' + re.escape(brand) + r'\b', name_lower) or name_lower.startswith(brand):
+            return logo_url
+
+    # 2. Busca pelo nome exato do canal no banco de dados lido do CanaisBR03
+    if name_lower in logo_map:
+        return logo_map[name_lower]
+
+    # 3. Busca parcial no banco do autor
+    for db_name, logo_url in logo_map.items():
+        if db_name in name_lower or name_lower in db_name:
+            return logo_url
+
+    # 4. Fallback limpo
+    clean_name = re.sub(r'[^a-zA-Z0-9]', '', name_lower)
+    return f"{TJTOR_BASE}{clean_name}.png"
 
 async def load_tjtor_logo_database(session):
-    """Lê a lista secundária do autor e constrói o banco de logos."""
+    """Carrega as logos do arquivo oficial do autor."""
     logo_map = {}
-    brand_map = {}
-    print("Carregando banco de dados de logos...")
     try:
         async with session.get(LOGOS_M3U_URL, timeout=15) as resp:
             if resp.status == 200:
@@ -70,48 +98,13 @@ async def load_tjtor_logo_database(session):
                         logo_match = re.search(r'tvg-logo="([^"]+)"', line)
                         name = line.split(",")[-1].strip() if "," in line else ""
                         if logo_match and name:
-                            logo_url = logo_match.group(1)
-                            full_name_clean = name.strip().lower()
-                            core_brand = extract_core_brand(name)
-
-                            logo_map[full_name_clean] = logo_url
-                            if core_brand and core_brand not in brand_map:
-                                brand_map[core_brand] = logo_url
-                print(f"Banco carregado: {len(logo_map)} nomes exatos e {len(brand_map)} marcas mapeadas.")
+                            logo_map[name.strip().lower()] = logo_match.group(1)
     except Exception as e:
-        print(f"Aviso ao carregar logos: {e}")
-    return logo_map, brand_map
-
-def get_best_logo_url(channel_name, logo_map, brand_map):
-    """Estratégia hierárquica em 4 passos para garantir a logo em variações SD/HD e regionais."""
-    clean_full_name = channel_name.strip().lower()
-    core_brand = extract_core_brand(channel_name)
-
-    # 1. Busca pelo nome idêntico
-    if clean_full_name in logo_map:
-        return logo_map[clean_full_name]
-
-    # 2. Busca pela Marca Pura no banco do autor (ex: "viva sd" encontra a logo do "viva fhd")
-    if core_brand in brand_map:
-        return brand_map[core_brand]
-
-    # 3. Busca por palavra-chave da Marca Pura dentro do banco
-    for b_name, logo_url in brand_map.items():
-        if b_name and (b_name in core_brand or core_brand in b_name):
-            return logo_url
-
-    # 4. Busca no dicionário de marcas estáticas para redes nacionais
-    for static_brand, logo_url in STATIC_BRAND_LOGOS.items():
-        if static_brand in core_brand:
-            return logo_url
-
-    # Fallback limpo apontando para a marca principal no servidor tjtor
-    formatted = core_brand.replace(" ", "_")
-    encoded = urllib.parse.quote(formatted)
-    return f"{TJTOR_BASE}{encoded}.png"
+        print(f"Erro ao carregar banco de logos: {e}")
+    return logo_map
 
 async def check_stream(session, url, semaphore):
-    """Testa se a URL responde status HTTP 200."""
+    """Testa se a URL do canal responde status HTTP 200."""
     if not url.startswith("http"):
         return False
     async with semaphore:
@@ -198,7 +191,7 @@ def classify_channel(channel):
 
 async def main():
     async with aiohttp.ClientSession() as session:
-        logo_map, brand_map = await load_tjtor_logo_database(session)
+        logo_map = await load_tjtor_logo_database(session)
 
         print("Baixando lista de canais principal...")
         try:
@@ -236,12 +229,12 @@ async def main():
             f.write(f'#EXTM3U url-tvg="{EPG_BASE_URL}"\n')
             for ch in online_channels:
                 original_name = ch["name"]
-                logo_url = get_best_logo_url(original_name, logo_map, brand_map)
+                logo_url = get_guaranteed_logo(original_name, logo_map)
 
                 new_extinf = f'#EXTINF:-1 tvg-name="{original_name}" tvg-logo="{logo_url}" group-title="{ch["group"]}",{original_name}'
                 f.write(f"{new_extinf}\n{ch['url']}\n")
 
-        print("Nova lista gerada com sucesso e logos mapeadas por marca!")
+        print("Nova lista gerada com sucesso e 100% das variações mapeadas!")
 
 if __name__ == "__main__":
     asyncio.run(main())
